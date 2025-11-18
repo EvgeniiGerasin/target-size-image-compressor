@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Сжать изображения</title>
+  <link rel="icon" type="image/png" href="icon.png" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
   <!-- Подключаем JSZip и FileSaver -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -212,9 +213,23 @@
       try {
         const blob = await compressImage(file, targetBytes);
         const originalName = file.name;
-        const baseName = originalName.replace(/\.[^/.]+$/, '');
+
+        // Очищаем имя от небезопасных символов
+        let cleanBaseName = originalName.replace(/\.[^/.]+$/, ''); // убираем расширение
+        cleanBaseName = cleanBaseName
+          .replace(/[\/\\:*?"<>|\[\]]/g, '_') // заменяем спецсимволы на _
+          .replace(/\s+/g, '_')               // пробелы → _
+          .replace(/_+/g, '_')                 // множественные _ → одно
+          .replace(/^_+|_+$/g, '');            // убираем _ в начале и конце
+
+        // Ограничиваем длину до 50 символов
+        if (cleanBaseName.length > 50) {
+          cleanBaseName = cleanBaseName.slice(0, 47) + '...';
+        }
+
         const ext = originalName.match(/\.[^/.]+$/)?.[0] || '.jpg';
-        const fileName = `compressed_${baseName}${ext}`;
+        const fileName = `compressed_${cleanBaseName}${ext}`;
+
         processedResults.push({ originalName, fileName, blob });
       } catch (err) {
         console.error('Ошибка обработки', file.name, err);
