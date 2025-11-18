@@ -1,0 +1,166 @@
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Inter', sans-serif;
+  background: linear-gradient(135deg, #0f0f0f, #1a1a1a);
+  color: #e5e5e5;
+}
+header {
+  text-align: center;
+  padding: 50px 20px 20px;
+}
+h1 {
+  font-size: 2.2rem;
+  font-weight: 700;
+  background: linear-gradient(90deg, #ffffff, #ffffff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 10px;
+}
+p.subtitle {
+  font-size: 1rem;
+  opacity: 0.8;
+}
+.card {
+  width: 95%;
+  max-width: 750px;
+  margin: 25px auto;
+  background: #1c1c1c;
+  border-radius: 18px;
+  padding: 30px;
+  box-shadow: 0 8px 25px rgba(0,0,0,0.4);
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(255,255,255,0.06);
+  position: relative;
+}
+label {
+  margin-top: 15px;
+  display: block;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+input[type="file"],
+input[type="number"] {
+  width: 100%;
+  margin-top: 8px;
+  padding: 12px;
+  background: #2a2a2a;
+  border: 1px solid #3b3b3b;
+  border-radius: 10px;
+  color: #fff;
+  font-size: 1rem;
+}
+button {
+  width: 100%;
+  padding: 14px;
+  margin-top: 22px;
+  background: linear-gradient(90deg, #cc0000, #ff4d4d);
+  border: none;
+  border-radius: 12px;
+  font-size: 1.1rem;
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.25s ease;
+}
+button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(255, 60, 60, 0.4);
+}
+button:disabled {
+  background: #555;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+#downloadAllBtn {
+  background: #f5f5f5;
+  color: #333;
+  margin-top: 20px;
+  display: none;
+}
+#downloadAllBtn:hover {
+  background: #eaeaea;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+}
+#result h3 {
+  margin-top: 25px;
+  font-size: 1.3rem;
+  border-left: 4px solid #cc0000;
+  padding-left: 10px;
+}
+.result-item {
+  background: #232323;
+  padding: 15px;
+  border-radius: 12px;
+  margin-top: 15px;
+  border: 1px solid rgba(255,255,255,0.05);
+  position: relative;
+}
+.result-item img {
+  max-width: 100%;
+  max-height: 220px;
+  border-radius: 10px;
+  margin: 10px auto;
+  display: block;
+}
+.download-link {
+  position: absolute;
+  top: 12px;
+  right: 15px;
+  color: #cc0000;
+  font-weight: 600;
+  text-decoration: none;
+}
+.download-link:hover {
+  text-decoration: underline;
+}
+.copyright {
+  text-align: center;
+  font-size: 0.85rem;
+  opacity: 0.6;
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+}
+
+/* Кастомная кнопка выбора файлов — растянутая */
+.file-upload-wrapper {
+  width: 100%;
+  position: relative;
+}
+
+#imageInput {
+  position: absolute;
+  left: -9999px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.upload-btn {
+  width: 100%;
+  padding: 12px;
+  background: #2a2a2a;
+  border: 1px solid #3b3b3b;
+  border-radius: 10px;
+  color: #fff;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.upload-btn:hover {
+  background: #333;
+  border-color: #555;
+}
+
+.upload-btn:active {
+  transform: scale(0.98);
+}
