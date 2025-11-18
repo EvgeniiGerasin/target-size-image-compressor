@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Сжать изображения до указанного размера</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      max-width: 700px;
+      margin: 40px auto;
+      padding: 0 20px;
+      background: #121212;
+      color: #f0f0f0;
+    }
+    h1 {
+      text-align: center;
+      font-size: 1.8rem;
+      margin-bottom: 30px;
+    }
+    .container {
+      background: #1e1e1e;
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    }
+    input, button, label {
+      display: block;
+      width: 100%;
+      margin: 12px 0;
+      padding: 10px;
+      font-size: 1rem;
+    }
+    button {
+      background: #dc2626; /* crimson */
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    button:hover {
+      background: #b91c1c;
+    }
+    button:disabled {
+      background: #555;
+      cursor: not-allowed;
+    }
+    #result {
+      margin-top: 20px;
+    }
+    .result-item {
+      margin: 15px 0;
+      padding: 12px;
+      background: #2a2a2a;
+      border-radius: 8px;
+    }
+    .result-item img {
+      max-width: 100%;
+      max-height: 200px;
+      margin-top: 10px;
+      border-radius: 6px;
+      display: block;
+    }
+    .download-link {
+      display: inline-block;
+      margin-top: 8px;
+      color: #22c55e;
+      text-decoration: none;
+      font-weight: bold;
+    }
+    .download-link:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <h1>🖼️ Сжать изображения до указанного размера</h1>
+  <div class="container">
+    <label for="imageInput">Выберите изображения (можно несколько):</label>
+    <input type="file" id="imageInput" accept="image/*" multiple />
+
+    <label for="targetSize">Целевой размер (КБ):</label>
+    <input type="number" id="targetSize" value="300" min="10" max="5000" />
+
+    <button id="compressBtn" disabled>Сжать все</button>
+
+    <div id="result"></div>
+  </div>
+
+  <script>
+    const imageInput = document.getElementById('imageInput');
+    const compressBtn = document.getElementById('compressBtn');
+    const targetSizeInput = document.getElementById('targetSize');
+    const resultContainer = document.getElementById('result');
+
+    let selectedFiles = [];
+
+    imageInput.addEventListener('change', (e) => {
+      selectedFiles = Array.from(e.target.files);
+      compressBtn.disabled = selectedFiles.length === 0;
+      if (selectedFiles.length > 0) {
+        const totalSize = selectedFiles.reduce((sum, f) => sum + f.size, 0);
+        resultContainer.innerHTML = `<p>Выбрано: ${selectedFiles.length} файлов (${(totalSize / 1024).toFixed(1)} КБ)</p>`;
+      }
+    });
+
+    compressBtn.addEventListener('click', async () => {
+      if (selectedFiles.length === 0) return;
+
+      const targetKB = Number(targetSizeInput.value);
+      if (isNaN(targetKB) || targetKB <= 0) {
+        alert('Укажите корректный размер в КБ.');
+        return;
+      }
+
+      const targetBytes = targetKB * 1024;
+      resultContainer.innerHTML = '<p>Обработка изображений...</p>';
+
+      const results = [];
+      for (let i = 0; i < selectedFiles.length; i++) {
+        const file = selectedFiles[i];
+        resultContainer.innerHTML = `<p>Обработка ${i + 1} из ${selectedFiles.length}: ${file.name}</p>`;
+
+        try {
+          const blob = await compressImageToFileSize(file, targetBytes);
+          const url = URL.createObjectURL(blob);
+          results.push({ file, blob, url });
+        } catch (err) {
+          console.error('Ошибка при обработке', file.name, err);
+          results.push({ file, error: 'Ошибка сжатия' });
+        }
+      }
+
+      // Вывод результатов
+      resultContainer.innerHTML = '<h3>Результаты:</h3>';
+      results.forEach(({ file, blob, url, error }) => {
+        const div = document.createElement('div');
+        div.className = 'result-item';
+
+        if (error) {
+          div.innerHTML = `<strong>${file.name}</strong>: ${error}`;
+        } else {
+          const sizeKB = (blob.size / 1024).toFixed(1);
+          div.innerHTML = `
+            <strong>${file.name}</strong> → ${sizeKB} КБ<br>
+            <img src="${url}" alt="Preview" />
+            <a class="download-link" href="${url}" download="${'compressed_' + file.name.replace(/\.[^/.]+$/, '.jpg')}">💾 Скачать</a>
+          `;
+        }
+        resultContainer.appendChild(div);
+      });
+    });
+
+    function compressImageToFileSize(file, targetSizeBytes) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onerror = () => reject(new Error('Не удалось прочитать файл'));
+        reader.onload = (e) => {
+          const img = new Image();
+          img.onerror = () => reject(new Error('Не удалось загрузить изображение'));
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const width = img.width;
+            const height = img.height;
+
+            const MIN_QUALITY = 0.05;
+            const MIN_SCALE = 0.1;
+
+            function tryCompress(currentQuality, currentScale) {
+              const newWidth = Math.max(1, Math.floor(width * currentScale));
+              const newHeight = Math.max(1, Math.floor(height * currentScale));
+              canvas.width = newWidth;
+              canvas.height = newHeight;
+              ctx.clearRect(0, 0, newWidth, newHeight);
+              ctx.drawImage(img, 0, 0, newWidth, newHeight);
+
+              canvas.toBlob((blob) => {
+                if (!blob) {
+                  reject(new Error('Не удалось создать изображение'));
+                  return;
+                }
+
+                if (blob.size <= targetSizeBytes) {
+                  resolve(blob);
+                  return;
+                }
+
+                if (currentQuality <= MIN_QUALITY && currentScale <= MIN_SCALE) {
+                  // Даже минимальный вариант не влез — всё равно возвращаем
+                  resolve(blob);
+                  return;
+                }
+
+                if (currentQuality > MIN_QUALITY) {
+                  tryCompress(currentQuality - 0.05, currentScale);
+                } else {
+                  const nextScale = currentScale * 0.9;
+                  if (nextScale >= MIN_SCALE) {
+                    tryCompress(MIN_QUALITY, nextScale);
+                  } else {
+                    resolve(blob); // последняя попытка
+                  }
+                }
+              }, 'image/jpeg', currentQuality);
+            }
+
+            tryCompress(0.95, 1.0);
+          };
+          img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+  </script>
+</body>
+</html>
