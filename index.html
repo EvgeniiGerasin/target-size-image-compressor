@@ -3,71 +3,119 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Сжать изображения до указанного размера</title>
+  <title>Сжать изображения</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
   <style>
+    * {
+      box-sizing: border-box;
+    }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-      max-width: 700px;
-      margin: 40px auto;
-      padding: 0 20px;
-      background: #121212;
-      color: #f0f0f0;
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #0f0f0f, #1a1a1a);
+      color: #e5e5e5;
+    }
+    header {
+      text-align: center;
+      padding: 50px 20px 20px;
     }
     h1 {
-      text-align: center;
-      font-size: 1.8rem;
-      margin-bottom: 30px;
+      font-size: 2.2rem;
+      font-weight: 700;
+      background: linear-gradient(90deg, #ff4d4d, #ff914d);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 10px;
     }
-    .container {
-      background: #1e1e1e;
-      padding: 25px;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    p.subtitle {
+      font-size: 1rem;
+      opacity: 0.8;
     }
-    input, button, label {
+    .card {
+      width: 95%;
+      max-width: 750px;
+      margin: 25px auto;
+      background: #1c1c1c;
+      border-radius: 18px;
+      padding: 30px;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.4);
+      backdrop-filter: blur(6px);
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+    label {
+      margin-top: 15px;
       display: block;
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+    input[type="file"],
+    input[type="number"] {
       width: 100%;
-      margin: 12px 0;
-      padding: 10px;
+      margin-top: 8px;
+      padding: 12px;
+      background: #2a2a2a;
+      border: 1px solid #3b3b3b;
+      border-radius: 10px;
+      color: #fff;
       font-size: 1rem;
     }
     button {
-      background: #dc2626; /* crimson */
-      color: white;
+      width: 100%;
+      padding: 14px;
+      margin-top: 22px;
+      background: linear-gradient(90deg, #ff4d4d, #ff7b4d);
       border: none;
-      border-radius: 6px;
+      border-radius: 12px;
+      font-size: 1.1rem;
+      color: #fff;
+      font-weight: 700;
       cursor: pointer;
-      font-weight: bold;
+      transition: 0.25s ease;
     }
     button:hover {
-      background: #b91c1c;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(255,100,80,0.4);
     }
     button:disabled {
       background: #555;
       cursor: not-allowed;
+      box-shadow: none;
+      transform: none;
     }
-    #result {
-      margin-top: 20px;
+    #result h3 {
+      margin-top: 25px;
+      font-size: 1.3rem;
+      border-left: 4px solid #ff6b5a;
+      padding-left: 10px;
     }
     .result-item {
-      margin: 15px 0;
-      padding: 12px;
-      background: #2a2a2a;
-      border-radius: 8px;
+      background: #232323;
+      padding: 15px;
+      border-radius: 12px;
+      margin-top: 15px;
+      border: 1px solid rgba(255,255,255,0.05);
+      position: relative;
     }
     .result-item img {
       max-width: 100%;
-      max-height: 200px;
+      max-height: 220px;
+      border-radius: 10px;
       margin-top: 10px;
-      border-radius: 6px;
-      display: block;
     }
     .download-link {
-      display: inline-block;
-      margin-top: 8px;
-      color: #22c55e;
+      position: absolute;
+      top: 12px;
+      right: 15px;
+      color: #4dff91;
+      font-weight: 600;
       text-decoration: none;
-      font-weight: bold;
+    }
+    .download-link:hover {
+      text-decoration: underline;
+    }
+    .download-link:hover {
+      text-decoration: underline;
     }
     .download-link:hover {
       text-decoration: underline;
@@ -75,144 +123,124 @@
   </style>
 </head>
 <body>
-  <h1>🖼️ Сжать изображения до указанного размера</h1>
-  <div class="container">
-    <label for="imageInput">Выберите изображения (можно несколько):</label>
-    <input type="file" id="imageInput" accept="image/*" multiple />
+  <header>
+    <h1>Сжать изображения</h1>
+    <p class="subtitle">Уменьшите размер файлов, сохранив качество</p>
+  </header>
+
+  <div class="card">
+    <label for="imageInput">Выберите изображения:</label>
+    <input type="file" id="imageInput" multiple accept="image/*" />
 
     <label for="targetSize">Целевой размер (КБ):</label>
-    <input type="number" id="targetSize" value="300" min="10" max="5000" />
+    <input type="number" id="targetSize" value="300" min="10" />
 
-    <button id="compressBtn" disabled>Сжать все</button>
+    <button id="compressBtn" disabled>Сжать изображения</button>
 
     <div id="result"></div>
   </div>
 
-  <script>
-    const imageInput = document.getElementById('imageInput');
-    const compressBtn = document.getElementById('compressBtn');
-    const targetSizeInput = document.getElementById('targetSize');
-    const resultContainer = document.getElementById('result');
+<script>
+  const imageInput = document.getElementById('imageInput');
+  const compressBtn = document.getElementById('compressBtn');
+  const targetSizeInput = document.getElementById('targetSize');
+  const resultContainer = document.getElementById('result');
 
-    let selectedFiles = [];
+  let selectedFiles = [];
 
-    imageInput.addEventListener('change', (e) => {
-      selectedFiles = Array.from(e.target.files);
-      compressBtn.disabled = selectedFiles.length === 0;
-      if (selectedFiles.length > 0) {
-        const totalSize = selectedFiles.reduce((sum, f) => sum + f.size, 0);
-        resultContainer.innerHTML = `<p>Выбрано: ${selectedFiles.length} файлов (${(totalSize / 1024).toFixed(1)} КБ)</p>`;
-      }
-    });
+  imageInput.addEventListener('change', (e) => {
+    selectedFiles = Array.from(e.target.files);
+    compressBtn.disabled = selectedFiles.length === 0;
 
-    compressBtn.addEventListener('click', async () => {
-      if (selectedFiles.length === 0) return;
-
-      const targetKB = Number(targetSizeInput.value);
-      if (isNaN(targetKB) || targetKB <= 0) {
-        alert('Укажите корректный размер в КБ.');
-        return;
-      }
-
-      const targetBytes = targetKB * 1024;
-      resultContainer.innerHTML = '<p>Обработка изображений...</p>';
-
-      const results = [];
-      for (let i = 0; i < selectedFiles.length; i++) {
-        const file = selectedFiles[i];
-        resultContainer.innerHTML = `<p>Обработка ${i + 1} из ${selectedFiles.length}: ${file.name}</p>`;
-
-        try {
-          const blob = await compressImageToFileSize(file, targetBytes);
-          const url = URL.createObjectURL(blob);
-          results.push({ file, blob, url });
-        } catch (err) {
-          console.error('Ошибка при обработке', file.name, err);
-          results.push({ file, error: 'Ошибка сжатия' });
-        }
-      }
-
-      // Вывод результатов
-      resultContainer.innerHTML = '<h3>Результаты:</h3>';
-      results.forEach(({ file, blob, url, error }) => {
-        const div = document.createElement('div');
-        div.className = 'result-item';
-
-        if (error) {
-          div.innerHTML = `<strong>${file.name}</strong>: ${error}`;
-        } else {
-          const sizeKB = (blob.size / 1024).toFixed(1);
-          div.innerHTML = `
-            <strong>${file.name}</strong> → ${sizeKB} КБ<br>
-            <img src="${url}" alt="Preview" />
-            <a class="download-link" href="${url}" download="${'compressed_' + file.name.replace(/\.[^/.]+$/, '.jpg')}">💾 Скачать</a>
-          `;
-        }
-        resultContainer.appendChild(div);
-      });
-    });
-
-    function compressImageToFileSize(file, targetSizeBytes) {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onerror = () => reject(new Error('Не удалось прочитать файл'));
-        reader.onload = (e) => {
-          const img = new Image();
-          img.onerror = () => reject(new Error('Не удалось загрузить изображение'));
-          img.onload = () => {
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            const width = img.width;
-            const height = img.height;
-
-            const MIN_QUALITY = 0.05;
-            const MIN_SCALE = 0.1;
-
-            function tryCompress(currentQuality, currentScale) {
-              const newWidth = Math.max(1, Math.floor(width * currentScale));
-              const newHeight = Math.max(1, Math.floor(height * currentScale));
-              canvas.width = newWidth;
-              canvas.height = newHeight;
-              ctx.clearRect(0, 0, newWidth, newHeight);
-              ctx.drawImage(img, 0, 0, newWidth, newHeight);
-
-              canvas.toBlob((blob) => {
-                if (!blob) {
-                  reject(new Error('Не удалось создать изображение'));
-                  return;
-                }
-
-                if (blob.size <= targetSizeBytes) {
-                  resolve(blob);
-                  return;
-                }
-
-                if (currentQuality <= MIN_QUALITY && currentScale <= MIN_SCALE) {
-                  // Даже минимальный вариант не влез — всё равно возвращаем
-                  resolve(blob);
-                  return;
-                }
-
-                if (currentQuality > MIN_QUALITY) {
-                  tryCompress(currentQuality - 0.05, currentScale);
-                } else {
-                  const nextScale = currentScale * 0.9;
-                  if (nextScale >= MIN_SCALE) {
-                    tryCompress(MIN_QUALITY, nextScale);
-                  } else {
-                    resolve(blob); // последняя попытка
-                  }
-                }
-              }, 'image/jpeg', currentQuality);
-            }
-
-            tryCompress(0.95, 1.0);
-          };
-          img.src = e.target.result;
-        };
-        reader.readAsDataURL(file);
-      });
+    if (selectedFiles.length > 0) {
+      const total = selectedFiles.reduce((s,f)=>s+f.size,0);
+      resultContainer.innerHTML = `<p>Выбрано: ${selectedFiles.length} файлов (${(total/1024).toFixed(1)} КБ)</p>`;
     }
-  </script>
+  });
+
+  compressBtn.addEventListener('click', async () => {
+    if (!selectedFiles.length) return;
+
+    const targetKB = Number(targetSizeInput.value);
+    if (!targetKB || targetKB <= 0) return alert('Укажите корректный размер');
+
+    const targetBytes = targetKB * 1024;
+    resultContainer.innerHTML = '<p>Обработка...</p>';
+
+    const results = [];
+
+    for (let i = 0; i < selectedFiles.length; i++) {
+      const file = selectedFiles[i];
+      resultContainer.innerHTML = `<p>Обработка ${i+1}/${selectedFiles.length}: ${file.name}</p>`;
+
+      try {
+        const blob = await compressImage(file, targetBytes);
+        results.push({ file, blob, url: URL.createObjectURL(blob) });
+      } catch(err) {
+        results.push({ file, error: true });
+      }
+    }
+
+    resultContainer.innerHTML = '<h3>Результаты:</h3>';
+
+    results.forEach(({file, blob, url, error}) => {
+      const div = document.createElement('div');
+      div.className = 'result-item';
+
+      if (error) {
+        div.innerHTML = `<strong>${file.name}</strong>: ошибка`;
+      } else {
+        div.innerHTML = `
+          <strong>${file.name}</strong> → ${(blob.size/1024).toFixed(1)} КБ<br>
+          <img src="${url}" />
+          <a class="download-link" href="${url}" download="compressed_${file.name.replace(/\.[^/.]+$/, '.jpg')}">Скачать</a>
+        `;
+      }
+
+      resultContainer.appendChild(div);
+    });
+  });
+
+  function compressImage(file, targetSize) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+
+          let quality = 0.95;
+          let scale = 1;
+
+          function step() {
+            const w = Math.max(1, img.width * scale);
+            const h = Math.max(1, img.height * scale);
+            canvas.width = w;
+            canvas.height = h;
+            ctx.drawImage(img, 0, 0, w, h);
+
+            canvas.toBlob((blob)=>{
+              if (blob.size <= targetSize || quality < 0.05 && scale < 0.2) {
+                resolve(blob);
+              } else if (quality > 0.05) {
+                quality -= 0.06;
+                step();
+              } else {
+                scale *= 0.9;
+                step();
+              }
+            }, 'image/jpeg', quality);
+          }
+          step();
+        };
+        img.src = e.target.result;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+</script>
+
 </body>
 </html>
