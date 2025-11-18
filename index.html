@@ -26,7 +26,7 @@
     h1 {
       font-size: 2.2rem;
       font-weight: 700;
-      background: linear-gradient(90deg, #4dff88, #4dffcc);
+      background: linear-gradient(90deg, #cc0000, #cc0000);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       margin-bottom: 10px;
@@ -45,6 +45,7 @@
       box-shadow: 0 8px 25px rgba(0,0,0,0.4);
       backdrop-filter: blur(6px);
       border: 1px solid rgba(255,255,255,0.06);
+      position: relative;
     }
     label {
       margin-top: 15px;
@@ -67,18 +68,18 @@
       width: 100%;
       padding: 14px;
       margin-top: 22px;
-      background: linear-gradient(90deg, #4dff88, #4dffcc);
+      background: linear-gradient(90deg, #cc0000, #ff4d4d);
       border: none;
       border-radius: 12px;
       font-size: 1.1rem;
-      color: #000;
+      color: #fff;
       font-weight: 700;
       cursor: pointer;
       transition: 0.25s ease;
     }
     button:hover {
       transform: translateY(-2px);
-      box-shadow: 0 8px 20px rgba(77, 255, 136, 0.4);
+      box-shadow: 0 8px 20px rgba(255, 60, 60, 0.4);
     }
     button:disabled {
       background: #555;
@@ -87,14 +88,19 @@
       transform: none;
     }
     #downloadAllBtn {
-      background: linear-gradient(90deg, #4dffcc, #4dff88);
+      background: #f5f5f5;
+      color: #333;
       margin-top: 20px;
-      display: none; /* Скрыта по умолчанию */
+      display: none;
+    }
+    #downloadAllBtn:hover {
+      background: #eaeaea;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.1);
     }
     #result h3 {
       margin-top: 25px;
       font-size: 1.3rem;
-      border-left: 4px solid #4dff88;
+      border-left: 4px solid #cc0000;
       padding-left: 10px;
     }
     .result-item {
@@ -115,12 +121,20 @@
       position: absolute;
       top: 12px;
       right: 15px;
-      color: #4dff88;
+      color: #cc0000;
       font-weight: 600;
       text-decoration: none;
     }
     .download-link:hover {
       text-decoration: underline;
+    }
+    .copyright {
+      text-align: center;
+      font-size: 0.85rem;
+      opacity: 0.6;
+      margin-top: 20px;
+      padding-top: 15px;
+      border-top: 1px solid rgba(255,255,255,0.08);
     }
   </style>
 </head>
@@ -128,7 +142,6 @@
   <header>
     <h1>Сжать изображения</h1>
     <p class="subtitle">Уменьшите размер файлов, сохранив качество</p>
-    <p style="font-size:0.85rem;opacity:0.6;margin-top:10px;">© Евгений Герасин</p>
   </header>
 
   <div class="card">
@@ -142,6 +155,8 @@
     <button id="downloadAllBtn">Скачать все</button>
 
     <div id="result"></div>
+
+    <div class="copyright">© Евгений Герасин<br>1.0.2025</div>
   </div>
 
 <script>
@@ -151,12 +166,12 @@
   const targetSizeInput = document.getElementById('targetSize');
   const resultContainer = document.getElementById('result');
 
-  let processedResults = []; // Храним обработанные Blob'ы
+  let processedResults = [];
 
   imageInput.addEventListener('change', (e) => {
     const files = Array.from(e.target.files);
     compressBtn.disabled = files.length === 0;
-    processedResults = []; // Сбрасываем предыдущие результаты
+    processedResults = [];
     downloadAllBtn.style.display = 'none';
     if (files.length > 0) {
       const total = files.reduce((s,f)=>s+f.size,0);
@@ -165,6 +180,18 @@
       resultContainer.innerHTML = '';
     }
   });
+
+  // Функция обрезки имени файла до n символов с сохранением расширения
+  function truncateFilename(filename, maxLength) {
+    if (filename.length <= maxLength) return filename;
+    const extMatch = filename.match(/\.[^/.]+$/);
+    const ext = extMatch ? extMatch[0] : '';
+    const nameWithoutExt = filename.slice(0, -ext.length);
+    if (nameWithoutExt.length <= maxLength - 3 - ext.length) {
+      return filename;
+    }
+    return nameWithoutExt.slice(0, maxLength - 3 - ext.length) + '...' + ext;
+  }
 
   compressBtn.addEventListener('click', async () => {
     const files = Array.from(imageInput.files);
@@ -183,25 +210,30 @@
 
       try {
         const blob = await compressImage(file, targetBytes);
-        const fileName = `compressed_${file.name.replace(/\.[^/.]+$/, '.jpg')}`;
-        processedResults.push({ fileName, blob });
+        const originalName = file.name;
+        const baseName = originalName.replace(/\.[^/.]+$/, '');
+        const ext = originalName.match(/\.[^/.]+$/)?.[0] || '.jpg';
+        const fileName = `compressed_${baseName}${ext}`;
+        processedResults.push({ originalName, fileName, blob });
       } catch (err) {
         console.error('Ошибка обработки', file.name, err);
-        processedResults.push({ fileName: file.name, error: true });
+        processedResults.push({ originalName: file.name, error: true });
       }
     }
 
-    // Отображаем результаты
     resultContainer.innerHTML = '<h3>Результаты:</h3>';
-    processedResults.forEach(({fileName, blob, error}) => {
+    processedResults.forEach(({originalName, fileName, blob, error}) => {
       const div = document.createElement('div');
       div.className = 'result-item';
+
       if (error) {
-        div.innerHTML = `<strong>${fileName}</strong>: ошибка`;
+        const truncated = truncateFilename(originalName, 30);
+        div.innerHTML = `<strong>${truncated}</strong>: ошибка`;
       } else {
         const url = URL.createObjectURL(blob);
+        const truncatedName = truncateFilename(fileName, 30);
         div.innerHTML = `
-          <strong>${fileName}</strong> → ${(blob.size/1024).toFixed(1)} КБ<br>
+          <strong>${truncatedName}</strong> → ${(blob.size/1024).toFixed(1)} КБ<br>
           <img src="${url}" />
           <a class="download-link" href="${url}" download="${fileName}">Скачать</a>
         `;
@@ -209,7 +241,6 @@
       resultContainer.appendChild(div);
     });
 
-    // Показываем кнопку "Скачать все", если есть успешные результаты
     if (processedResults.some(r => !r.error)) {
       downloadAllBtn.style.display = 'block';
     }
