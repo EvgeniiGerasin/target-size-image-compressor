@@ -104,47 +104,83 @@ async function processSingleFile(file, targetBytes) {
 // ОСНОВНАЯ ЛОГИКА КОМПРЕССИИ
 // ------------------------------------------------------
 
-function compressImage(file, targetSize) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
+async function compressImage(file, targetSize) {
+  const bitmap = await createImageBitmap(file);
 
-        let quality = 0.95;
-        let scale = 1;
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
 
-        function step() {
-          const w = Math.max(1, img.width * scale);
-          const h = Math.max(1, img.height * scale);
-          canvas.width = w;
-          canvas.height = h;
-          ctx.drawImage(img, 0, 0, w, h);
+  let width = bitmap.width;
+  let height = bitmap.height;
 
-          canvas.toBlob((blob) => {
-            if (!blob) return reject(new Error('Не удалось создать изображение'));
-            if (blob.size <= targetSize || (quality < 0.05 && scale < 0.2)) {
-              resolve(blob);
-            } else if (quality > 0.05) {
-              quality -= 0.06;
-              step();
-            } else {
-              scale *= 0.9;
-              step();
-            }
-          }, 'image/jpeg', quality);
-        }
-        step();
-      };
-      img.onerror = reject;
-      img.src = e.target.result;
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
+  // ------------------------------
+  // 1. Плавное масштабирование
+  // ------------------------------
+
+  let scale = 1;
+
+  while (true) {
+    const scaledW = Math.max(1, width * scale);
+    const scaledH = Math.max(1, height * scale);
+
+    canvas.width = scaledW;
+    canvas.height = scaledH;
+    ctx.drawImage(bitmap, 0, 0, scaledW, scaledH);
+
+    const probe = await new Promise(resolve =>
+      canvas.toBlob(resolve, "image/jpeg", 0.9)
+    );
+
+    // если стало достаточно маленьким — выходим
+    if (probe.size <= targetSize * 1.8) break;
+
+    // если уже слишком сильно уменьшили — выходим
+    if (scaledW < 50 || scaledH < 50) break;
+
+    // уменьшаем плавно
+    scale *= 0.7;
+  }
+
+  // ------------------------------
+  // 2. Бинарный поиск качества
+  // ------------------------------
+
+  let low = 0.05;
+  let high = 0.95;
+  let bestBlob = null;
+
+  for (let i = 0; i < 20; i++) {
+    const quality = (low + high) / 2;
+
+    const blob = await new Promise(resolve =>
+      canvas.toBlob(resolve, "image/jpeg", quality)
+    );
+
+    if (!blob) throw new Error("Не удалось создать изображение");
+
+    if (blob.size <= targetSize) {
+      bestBlob = blob; // лучший на данный момент
+      low = quality;   // пробуем лучше качество
+    } else {
+      high = quality;  // уменьшаем качество
+    }
+  }
+
+  // ------------------------------
+  // 3. Если достичь targetSize невозможн
+  // ------------------------------
+
+  if (bestBlob) {
+    return bestBlob; // удалось подобрать
+  }
+
+  //выдаём минимально возможный
+  return new Promise(resolve =>
+    canvas.toBlob(resolve, "image/jpeg", 0.05)
+  );
 }
+
+
 
 // ------------------------------------------------------
 // ОБРАБОТЧИКИ СОБЫТИЙ
