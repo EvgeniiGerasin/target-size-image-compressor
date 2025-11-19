@@ -1,3 +1,6 @@
+// ------------------------------------------------------
+// ЭЛЕМЕНТЫ DOM
+// ------------------------------------------------------
 const imageInput = document.getElementById('imageInput');
 const compressBtn = document.getElementById('compressBtn');
 const downloadAllBtn = document.getElementById('downloadAllBtn');
@@ -6,123 +9,100 @@ const resultContainer = document.getElementById('result');
 
 let processedResults = [];
 
-imageInput.addEventListener('change', (e) => {
-  const files = Array.from(e.target.files);
-  compressBtn.disabled = files.length === 0;
-  processedResults = [];
-  downloadAllBtn.style.display = 'none';
-  if (files.length > 0) {
-    const total = files.reduce((s, f) => s + f.size, 0);
-    resultContainer.innerHTML = `<p>Выбрано: ${files.length} файлов (${(total / 1024).toFixed(1)} КБ)</p>`;
-  } else {
-    resultContainer.innerHTML = '';
-  }
-});
+// ------------------------------------------------------
+// УТИЛИТЫ
+// ------------------------------------------------------
 
-// Функция обрезки имени файла до n символов с сохранением расширения
+// Обрезка имени файла
 function truncateFilename(filename, maxLength) {
   if (filename.length <= maxLength) return filename;
   const extMatch = filename.match(/\.[^/.]+$/);
   const ext = extMatch ? extMatch[0] : '';
-  const nameWithoutExt = filename.slice(0, -ext.length);
-  if (nameWithoutExt.length <= maxLength - 3 - ext.length) {
-    return filename;
-  }
-  return nameWithoutExt.slice(0, maxLength - 3 - ext.length) + '...' + ext;
+  const base = filename.slice(0, -ext.length);
+
+  const maxBaseLength = maxLength - 3 - ext.length;
+  return base.slice(0, maxBaseLength) + '...' + ext;
 }
 
-compressBtn.addEventListener('click', async () => {
-  const files = Array.from(imageInput.files);
-  if (!files.length) return;
+// Создание безопасного имени файла
+function sanitizeFilename(originalName) {
+  let clean = originalName.replace(/\.[^/.]+$/, '');
+  clean = clean
+    .replace(/[\/\\:*?"<>|\[\]]/g, '_')
+    .replace(/\s+/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_+|_+$/g, '');
 
-  const targetKB = Number(targetSizeInput.value);
-  if (!targetKB || targetKB <= 0) return alert('Укажите корректный размер');
+  if (clean.length > 50) clean = clean.slice(0, 47) + '...';
 
-  const targetBytes = targetKB * 1024;
-  resultContainer.innerHTML = '<p>Обработка...</p>';
-  processedResults = [];
+  const ext = originalName.match(/\.[^/.]+$/)?.[0] || '.jpg';
+  return `compressed_${clean}${ext}`;
+}
 
-  for (let i = 0; i < files.length; i++) {
-    const file = files[i];
-    resultContainer.innerHTML = `<p>Обработка ${i + 1}/${files.length}: ${file.name}</p>`;
+// ------------------------------------------------------
+// UI ЛОГИКА
+// ------------------------------------------------------
 
-    try {
-      const blob = await compressImage(file, targetBytes);
-      const originalName = file.name;
-
-      // Очищаем имя от небезопасных символов
-      let cleanBaseName = originalName.replace(/\.[^/.]+$/, ''); // убираем расширение
-      cleanBaseName = cleanBaseName
-        .replace(/[\/\\:*?"<>|\[\]]/g, '_') // заменяем спецсимволы на _
-        .replace(/\s+/g, '_')               // пробелы → _
-        .replace(/_+/g, '_')                // множественные _ → одно
-        .replace(/^_+|_+$/g, '');           // убираем _ в начале и конце
-
-      // Ограничиваем длину до 50 символов
-      if (cleanBaseName.length > 50) {
-        cleanBaseName = cleanBaseName.slice(0, 47) + '...';
-      }
-
-      const ext = originalName.match(/\.[^/.]+$/)?.[0] || '.jpg';
-      const fileName = `compressed_${cleanBaseName}${ext}`;
-
-      processedResults.push({ originalName, fileName, blob });
-    } catch (err) {
-      console.error('Ошибка обработки', file.name, err);
-      processedResults.push({ originalName: file.name, error: true });
-    }
+function renderInitialSelection(files) {
+  if (!files.length) {
+    resultContainer.innerHTML = '';
+    return;
   }
 
+  const total = files.reduce((s, f) => s + f.size, 0);
+  resultContainer.innerHTML = `
+    <p>Выбрано: ${files.length} файлов (${(total / 1024).toFixed(1)} КБ)</p>
+  `;
+}
+
+function showProcessingStatus(index, total, name) {
+  resultContainer.innerHTML = `<p>Обработка ${index}/${total}: ${name}</p>`;
+}
+
+function renderResults(results) {
   resultContainer.innerHTML = '<h3>Результаты:</h3>';
-  processedResults.forEach(({ originalName, fileName, blob, error }) => {
+
+  results.forEach(({ originalName, fileName, blob, error }) => {
     const div = document.createElement('div');
     div.className = 'result-item';
 
     if (error) {
-      const truncated = truncateFilename(originalName, 30);
-      div.innerHTML = `<strong>${truncated}</strong>: ошибка`;
+      div.innerHTML = `<strong>${truncateFilename(originalName, 30)}</strong>: ошибка`;
     } else {
       const url = URL.createObjectURL(blob);
-      const truncatedName = truncateFilename(fileName, 30);
       div.innerHTML = `
-        <strong>${truncatedName}</strong> → ${(blob.size / 1024).toFixed(1)} КБ<br>
+        <strong>${truncateFilename(fileName, 30)}</strong> → ${(blob.size / 1024).toFixed(1)} КБ<br>
         <img src="${url}" />
         <a class="download-link" href="${url}" download="${fileName}">Скачать</a>
       `;
     }
+
     resultContainer.appendChild(div);
   });
 
-  if (processedResults.some(r => !r.error)) {
+  if (results.some(r => !r.error)) {
     downloadAllBtn.style.display = 'block';
   }
-});
+}
 
-downloadAllBtn.addEventListener('click', async () => {
-  const zip = new JSZip();
-  const validFiles = processedResults.filter(r => !r.error);
+// ------------------------------------------------------
+// ОБРАБОТКА ФАЙЛА
+// ------------------------------------------------------
 
-  for (const { fileName, blob } of validFiles) {
-    zip.file(fileName, blob);
-  }
-
+async function processSingleFile(file, targetBytes) {
   try {
-    const now = new Date();
-    const timestamp = now.getFullYear().toString() +
-                     String(now.getMonth() + 1).padStart(2, '0') +
-                     String(now.getDate()).padStart(2, '0') + '_' +
-                     String(now.getHours()).padStart(2, '0') +
-                     String(now.getMinutes()).padStart(2, '0') +
-                     String(now.getSeconds()).padStart(2, '0');
-    const zipName = `images_${timestamp}.zip`;
-    
-    const zipBlob = await zip.generateAsync({ type: 'blob' });
-    saveAs(zipBlob, zipName);
+    const blob = await compressImage(file, targetBytes);
+    const safeName = sanitizeFilename(file.name);
+    return { originalName: file.name, fileName: safeName, blob };
   } catch (err) {
-    alert('Ошибка при создании архива');
-    console.error(err);
+    console.error('Ошибка обработки', file.name, err);
+    return { originalName: file.name, error: true };
   }
-});
+}
+
+// ------------------------------------------------------
+// ОСНОВНАЯ ЛОГИКА КОМПРЕССИИ
+// ------------------------------------------------------
 
 function compressImage(file, targetSize) {
   return new Promise((resolve, reject) => {
@@ -165,3 +145,66 @@ function compressImage(file, targetSize) {
     reader.readAsDataURL(file);
   });
 }
+
+// ------------------------------------------------------
+// ОБРАБОТЧИКИ СОБЫТИЙ
+// ------------------------------------------------------
+
+imageInput.addEventListener('change', (e) => {
+  const files = Array.from(e.target.files);
+
+  compressBtn.disabled = files.length === 0;
+  processedResults = [];
+  downloadAllBtn.style.display = 'none';
+
+  renderInitialSelection(files);
+});
+
+compressBtn.addEventListener('click', async () => {
+  const files = Array.from(imageInput.files);
+  if (!files.length) return;
+
+  const targetKB = parseFloat(targetSizeInput.value);
+  if (Number.isNaN(targetKB) || targetKB <= 0) {
+    return alert('Укажите корректный размер');
+  }
+
+  const targetBytes = targetKB * 1024;
+  processedResults = [];
+
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    showProcessingStatus(i + 1, files.length, file.name);
+
+    const result = await processSingleFile(file, targetBytes);
+    processedResults.push(result);
+  }
+
+  renderResults(processedResults);
+});
+
+downloadAllBtn.addEventListener('click', async () => {
+  const zip = new JSZip();
+  const validFiles = processedResults.filter(r => !r.error);
+
+  for (const { fileName, blob } of validFiles) {
+    zip.file(fileName, blob);
+  }
+
+  try {
+    const now = new Date();
+    const timestamp =
+      now.getFullYear().toString() +
+      String(now.getMonth() + 1).padStart(2, '0') +
+      String(now.getDate()).padStart(2, '0') + '_' +
+      String(now.getHours()).padStart(2, '0') +
+      String(now.getMinutes()).padStart(2, '0') +
+      String(now.getSeconds()).padStart(2, '0');
+
+    const zipBlob = await zip.generateAsync({ type: 'blob' });
+    saveAs(zipBlob, `images_${timestamp}.zip`);
+  } catch (err) {
+    alert('Ошибка при создании архива');
+    console.error(err);
+  }
+});
