@@ -36,7 +36,7 @@ function sanitizeFilename(originalName) {
   if (clean.length > 50) clean = clean.slice(0, 47) + '...';
 
   const ext = originalName.match(/\.[^/.]+$/)?.[0] || '.jpg';
-  return `compressed_${clean}${ext}`;
+  return `${clean}${ext}`;
 }
 
 // ------------------------------------------------------
